@@ -2,6 +2,7 @@
 from rosidl_generator_c import idl_type_to_c
 
 from rosidl_generator_dotnet import msg_type_to_c
+from rosidl_generator_dotnet import is_sequence_block_copy_supported
 
 from rosidl_parser.definition import AbstractNestedType
 from rosidl_parser.definition import AbstractGenericString
@@ -85,6 +86,28 @@ int32_t /* bool */ @(msg_typename)__read_field_@(member.name)(void *message_hand
 {
   bool * ros_message = (bool *)message_handle;
   return (*ros_message) ? 1 : 0;
+}
+@[        elif is_sequence_block_copy_supported(member.type.value_type)]@
+void @(msg_typename)__write_field_@(member.name)(void *message_handle, const @(msg_type_to_c(member.type.value_type)) *values, int32_t size)
+{
+  @(msg_typename) * ros_message = (@(msg_typename) *)message_handle;
+@[          if isinstance(member.type, Array)]
+  @(msg_type_to_c(member.type.value_type)) *handle_values = ros_message->@(member.name);
+@[          else]@
+  @(msg_type_to_c(member.type.value_type)) *handle_values = ros_message->@(member.name).data;
+@[          end if]@
+  memcpy(handle_values, values, sizeof(@(msg_type_to_c(member.type.value_type))) * size);
+}
+
+void @(msg_typename)__read_field_@(member.name)(void *message_handle, @(msg_type_to_c(member.type.value_type)) *values, int32_t size)
+{
+  @(msg_typename) * ros_message = (@(msg_typename) *)message_handle;
+@[          if isinstance(member.type, Array)]
+  @(msg_type_to_c(member.type.value_type)) *handle_values = ros_message->@(member.name);
+@[          else]@
+  @(msg_type_to_c(member.type.value_type)) *handle_values = ros_message->@(member.name).data;
+@[          end if]@
+  memcpy(values, handle_values, sizeof(@(msg_type_to_c(member.type.value_type))) * size);
 }
 @[        elif isinstance(member.type.value_type, BasicType)]@
 void @(msg_typename)__write_field_@(member.name)(void *message_handle, @(msg_type_to_c(member.type.value_type)) value)
